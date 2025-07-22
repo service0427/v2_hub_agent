@@ -1,0 +1,42 @@
+node_modules/
+.env
+*.log
+.DS_Store
+dist/
+build/
+data/
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS files
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+
+# Package lock files (keep only one)
+package-lock.json
+yarn.lock
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+.tsc-tmp/
+
+# PM2
+.pm2/

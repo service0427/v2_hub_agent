@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: parserhub-v2-api
+    ports:
+      - "8445:8445"  # API port
+      - "8446:8446"  # Socket.io port
+    environment:
+      - NODE_ENV=production
+      - PORT=8445
+      - SOCKET_PORT=8446
+      - DB_HOST=mkt.techb.kr  # External PostgreSQL server
+      - DB_PORT=5432
+      - DB_USER=techb_pp
+      - DB_PASS=Tech1324!
+      - DB_NAME=productparser_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_KEY=${API_KEY:-YOUR_API_KEY_HERE}
+      - DEV_MODE=true  # Use sample data during development
+    depends_on:
+      - redis
+    volumes:
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    networks:
+      - parserhub-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: parserhub-v2-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - parserhub-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  parserhub-network:
+    driver: bridge
