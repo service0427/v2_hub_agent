@@ -190,7 +190,7 @@ AGENT_PORT=3001
 INSTANCE_ID=1
 
 # Chrome browser settings
-HEADLESS=true
+HEADLESS=false
 USER_DATA_DIR=$INSTALL_DIR/agent-v2/data/users
 
 # Logging
@@ -219,7 +219,7 @@ Environment="HUB_URL=$HUB_URL"
 Environment="API_KEY=$API_KEY"
 Environment="AGENT_PORT=$PORT"
 Environment="INSTANCE_ID=$i"
-Environment="HEADLESS=true"
+Environment="HEADLESS=false"
 ExecStart=/usr/bin/node src/index.js $PORT $i
 Restart=always
 RestartSec=10
@@ -233,11 +233,18 @@ EOF
     print_msg $GREEN "✓ Systemd services created"
 fi
 
+# Create logs directory
+print_msg $YELLOW "Creating logs directory..."
+mkdir -p logs
+
 # Create start script
 print_msg $YELLOW "Creating start scripts..."
 cat > start.sh << 'EOF'
 #!/bin/bash
 INSTANCES=${1:-1}
+
+# Create logs directory if it doesn't exist
+mkdir -p logs
 
 if [ "$INSTANCES" -eq 1 ]; then
     node src/index.js 3001 1
