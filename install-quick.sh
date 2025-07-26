@@ -6,7 +6,7 @@
 set -e
 
 # Default values
-HUB_URL="http://u24.techb.kr:8447"
+HUB_URL="https://u24.techb.kr"
 API_KEY=""
 INSTALL_DIR="$HOME/crawler-agent"
 INSTANCES=1
