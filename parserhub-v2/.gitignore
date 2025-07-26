@@ -43,3 +43,23 @@ redis-data/
 # Temporary files
 tmp/
 temp/
+
+# Package lock
+package-lock.json
+
+# Test scripts
+tests/
+scripts/test-*.sh
+quick-test.sh
+
+# Server logs
+server.log
+hub.log
+*.pid
+
+# Service files
+*.service
+ecosystem.config.js
+
+# Duplicate directories
+crawler-agent/

@@ -40,3 +40,25 @@ coverage/
 
 # PM2
 .pm2/
+
+# Backup files
+*.tar.gz
+*_backup_*/
+backup/
+src_backup_*/
+
+# Screenshots
+*.png
+
+# Development specific
+shrimp_data/
+agent-v2/
+parserhub-v2-backup*/
+
+# Server logs
+hub.log
+agent.log
+agent*.log
+antidetect.log
+chrome-agent.log
+firefox-*.log

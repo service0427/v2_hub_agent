@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+*.pid
+
+# User data from Chromium/Playwright
+data/users/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# PM2
+.pm2/
+ecosystem.config.js
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Build output
+dist/
+build/
+
+# Package lock
+package-lock.json
+
+# Development/test files
+src/dev*.js
+src/test-*.js
+workflows/test/
+workflows/unused/
+
+# Screenshots
+logs/*.png
+
+# Backup directories
+backup/
+archive/
+src_backup_*/
