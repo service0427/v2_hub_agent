@@ -46,10 +46,10 @@ v2_hub_agent/
 
 ```bash
 # 단일 에이전트 설치
-curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | bash -s -- --key YOUR_API_KEY
+curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | sudo bash -s -- --key YOUR_API_KEY
 
 # 다중 에이전트 설치 (4개)
-curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | bash -s -- --key YOUR_API_KEY --instances 4
+curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | sudo bash -s -- --key YOUR_API_KEY --instances 4
 ```
 
 ### 2. 에이전트 실행

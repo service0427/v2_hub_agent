@@ -1,9 +1,18 @@
 #!/bin/bash
 
 # Crawler Agent v2 Quick Install Script
-# Usage: curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | bash -s -- [options]
+# Usage: curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | sudo bash -s -- [options]
 
 set -e
+
+# Check if running with sudo
+if [ "$EUID" -eq 0 ]; then 
+   echo "Running with sudo privileges"
+else
+   echo "Error: This script must be run with sudo"
+   echo "Usage: curl -s https://raw.githubusercontent.com/service0427/v2_hub_agent/main/install-quick.sh | sudo bash -s -- [options]"
+   exit 1
+fi
 
 # Default values
 HUB_URL="https://u24.techb.kr"
@@ -29,9 +38,9 @@ print_msg() {
 
 # Function to display usage
 usage() {
-    echo "Usage: $0 [options]"
+    echo "Usage: curl -s <script_url> | sudo bash -s -- [options]"
     echo "Options:"
-    echo "  --hub URL          Hub URL (default: http://u24.techb.kr:8447)"
+    echo "  --hub URL          Hub URL (default: https://u24.techb.kr)"
     echo "  --key KEY          API key for authentication"
     echo "  --instances N      Number of agent instances (1-4, default: 1)"
     echo "  --ip IP            Host IP address (auto-detected if not specified)"
@@ -76,7 +85,7 @@ done
 # Validate inputs
 if [ -z "$API_KEY" ]; then
     print_msg $RED "Error: API key is required"
-    echo "Usage: $0 --key YOUR_API_KEY [options]"
+    echo "Usage: curl -s <script_url> | sudo bash -s -- --key YOUR_API_KEY [options]"
     exit 1
 fi
 
@@ -107,8 +116,8 @@ if ! command -v node &> /dev/null; then
     print_msg $YELLOW "Node.js not found. Installing Node.js $NODE_VERSION..."
     
     # Install Node.js using NodeSource repository
-    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash -
+    apt-get install -y nodejs
     
     print_msg $GREEN "✓ Node.js installed successfully"
 else
@@ -118,14 +127,24 @@ fi
 # Check if git is installed
 if ! command -v git &> /dev/null; then
     print_msg $YELLOW "Git not found. Installing git..."
-    sudo apt-get update
-    sudo apt-get install -y git
+    apt-get update
+    apt-get install -y git
     print_msg $GREEN "✓ Git installed successfully"
+fi
+
+# Get the original user (who ran sudo)
+ORIGINAL_USER="${SUDO_USER:-$USER}"
+ORIGINAL_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
+
+# Update install dir to use original user's home if needed
+if [[ "$INSTALL_DIR" == "\$HOME"* ]]; then
+    INSTALL_DIR="${INSTALL_DIR/\$HOME/$ORIGINAL_HOME}"
 fi
 
 # Create installation directory
 print_msg $YELLOW "Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
+chown "$ORIGINAL_USER:$ORIGINAL_USER" "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
 # Download agent from GitHub
@@ -137,11 +156,12 @@ fi
 
 # Download the entire repository
 print_msg $YELLOW "Cloning repository..."
-git clone --depth=1 https://github.com/service0427/v2_hub_agent.git temp-repo
+su - "$ORIGINAL_USER" -c "cd '$INSTALL_DIR' && git clone --depth=1 https://github.com/service0427/v2_hub_agent.git temp-repo"
 
 # Move only the agent-socketio directory
 if [ -d "temp-repo/agent-socketio" ]; then
     mv temp-repo/agent-socketio agent
+    chown -R "$ORIGINAL_USER:$ORIGINAL_USER" agent
     rm -rf temp-repo
 else
     print_msg $RED "Error: agent-socketio directory not found in repository"
@@ -153,18 +173,18 @@ cd agent
 
 # Install dependencies
 print_msg $YELLOW "Installing dependencies..."
-npm install
+su - "$ORIGINAL_USER" -c "cd '$INSTALL_DIR/agent' && npm install"
 
 # Install Playwright browsers
 print_msg $YELLOW "Installing Playwright browsers..."
-npx playwright install chromium
+su - "$ORIGINAL_USER" -c "cd '$INSTALL_DIR/agent' && npx playwright install chromium"
 
 # Install system dependencies for Playwright
 print_msg $YELLOW "Installing system dependencies..."
-sudo npx playwright install-deps chromium || {
+npx playwright install-deps chromium || {
     print_msg $YELLOW "Trying manual dependency installation..."
-    sudo apt-get update
-    sudo apt-get install -y \
+    apt-get update
+    apt-get install -y \
         libnspr4 \
         libnss3 \
         libatk1.0-0 \
@@ -208,14 +228,14 @@ if [ "$INSTANCES" -gt 1 ]; then
         PORT=$((3000 + i))
         SERVICE_NAME="crawler-agent@$i"
         
-        sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null << EOF
+        tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null << EOF
 [Unit]
 Description=Crawler Agent v2 Instance $i
 After=network.target
 
 [Service]
 Type=simple
-User=$USER
+User=$ORIGINAL_USER
 WorkingDirectory=$INSTALL_DIR/agent
 Environment="NODE_ENV=production"
 Environment="HUB_URL=$HUB_URL"
@@ -232,7 +252,7 @@ WantedBy=multi-user.target
 EOF
     done
     
-    sudo systemctl daemon-reload
+    systemctl daemon-reload
     print_msg $GREEN "✓ Systemd services created"
 fi
 
