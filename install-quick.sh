@@ -135,17 +135,19 @@ if [ -d "agent" ]; then
     rm -rf agent
 fi
 
-# Download using git sparse-checkout
-git init temp-repo
-cd temp-repo
-git remote add origin https://github.com/service0427/v2_hub_agent.git
-git config core.sparseCheckout true
-echo "agent-socketio/*" > .git/info/sparse-checkout
-git pull origin main --depth=1
-mv agent-socketio agent
-mv agent ..
-cd ..
-rm -rf temp-repo
+# Download the entire repository
+print_msg $YELLOW "Cloning repository..."
+git clone --depth=1 https://github.com/service0427/v2_hub_agent.git temp-repo
+
+# Move only the agent-socketio directory
+if [ -d "temp-repo/agent-socketio" ]; then
+    mv temp-repo/agent-socketio agent
+    rm -rf temp-repo
+else
+    print_msg $RED "Error: agent-socketio directory not found in repository"
+    rm -rf temp-repo
+    exit 1
+fi
 
 cd agent
 
