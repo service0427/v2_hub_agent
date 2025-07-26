@@ -6,9 +6,9 @@
 set -e
 
 # Default values
-HUB_URL="http://mkt.techb.kr:8447"
+HUB_URL="http://u24.techb.kr:8447"
 API_KEY=""
-INSTALL_DIR="$HOME/crawler-agent-v2"
+INSTALL_DIR="$HOME/crawler-agent"
 INSTANCES=1
 HOST_IP=""
 NODE_VERSION="18"
@@ -31,11 +31,11 @@ print_msg() {
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "  --hub URL          Hub URL (default: http://mkt.techb.kr:8447)"
+    echo "  --hub URL          Hub URL (default: http://u24.techb.kr:8447)"
     echo "  --key KEY          API key for authentication"
     echo "  --instances N      Number of agent instances (1-4, default: 1)"
     echo "  --ip IP            Host IP address (auto-detected if not specified)"
-    echo "  --dir DIR          Installation directory (default: ~/crawler-agent-v2)"
+    echo "  --dir DIR          Installation directory (default: ~/crawler-agent)"
     echo "  --help             Show this help message"
     exit 0
 }
@@ -128,11 +128,11 @@ print_msg $YELLOW "Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
-# Download agent-v2 from GitHub
-print_msg $YELLOW "Downloading Crawler Agent v2..."
-if [ -d "agent-v2" ]; then
-    print_msg $YELLOW "Removing existing agent-v2 directory..."
-    rm -rf agent-v2
+# Download agent from GitHub
+print_msg $YELLOW "Downloading Crawler Agent..."
+if [ -d "agent" ]; then
+    print_msg $YELLOW "Removing existing agent directory..."
+    rm -rf agent
 fi
 
 # Download using git sparse-checkout
@@ -140,13 +140,14 @@ git init temp-repo
 cd temp-repo
 git remote add origin https://github.com/service0427/v2_hub_agent.git
 git config core.sparseCheckout true
-echo "agent-v2/*" > .git/info/sparse-checkout
+echo "agent-socketio/*" > .git/info/sparse-checkout
 git pull origin main --depth=1
-mv agent-v2 ..
+mv agent-socketio agent
+mv agent ..
 cd ..
 rm -rf temp-repo
 
-cd agent-v2
+cd agent
 
 # Install dependencies
 print_msg $YELLOW "Installing dependencies..."
@@ -191,7 +192,7 @@ INSTANCE_ID=1
 
 # Chrome browser settings
 HEADLESS=false
-USER_DATA_DIR=$INSTALL_DIR/agent-v2/data/users
+USER_DATA_DIR=$INSTALL_DIR/agent/data/users
 
 # Logging
 LOG_LEVEL=info
@@ -203,7 +204,7 @@ if [ "$INSTANCES" -gt 1 ]; then
     
     for i in $(seq 1 $INSTANCES); do
         PORT=$((3000 + i))
-        SERVICE_NAME="crawler-agent-v2@$i"
+        SERVICE_NAME="crawler-agent@$i"
         
         sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null << EOF
 [Unit]
@@ -213,7 +214,7 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$INSTALL_DIR/agent-v2
+WorkingDirectory=$INSTALL_DIR/agent
 Environment="NODE_ENV=production"
 Environment="HUB_URL=$HUB_URL"
 Environment="API_KEY=$API_KEY"
@@ -237,27 +238,18 @@ fi
 print_msg $YELLOW "Creating logs directory..."
 mkdir -p logs
 
-# Create start script
-print_msg $YELLOW "Creating start scripts..."
-cat > start.sh << 'EOF'
-#!/bin/bash
-INSTANCES=${1:-1}
-
-# Create logs directory if it doesn't exist
-mkdir -p logs
-
-if [ "$INSTANCES" -eq 1 ]; then
-    node src/index.js 3001 1
-else
-    for i in $(seq 1 $INSTANCES); do
-        echo "Starting agent instance $i..."
-        nohup node src/index.js $((3000 + i)) $i > logs/agent_$i.log 2>&1 &
-        echo "Instance $i started with PID $!"
-        sleep 2
-    done
+# Check for management scripts
+print_msg $YELLOW "Setting up management scripts..."
+if [ ! -f "manage.sh" ]; then
+    print_msg $RED "Error: manage.sh not found in the downloaded agent"
+    print_msg $YELLOW "Please check the installation manually"
+    exit 1
 fi
-EOF
-chmod +x start.sh
+
+# Make scripts executable
+chmod +x manage.sh
+[ -f "start-agents.sh" ] && chmod +x start-agents.sh
+[ -f "pm2-start.sh" ] && chmod +x pm2-start.sh
 
 # Create stop script
 cat > stop.sh << 'EOF'
@@ -284,17 +276,17 @@ echo ""
 print_msg $BLUE "Next steps:"
 echo ""
 echo "1. Test connection:"
-echo "   cd $INSTALL_DIR/agent-v2"
+echo "   cd $INSTALL_DIR/agent"
 echo "   ./test-connection.sh"
 echo ""
 echo "2. Start agent(s):"
-echo "   ./start.sh $INSTANCES"
+echo "   ./manage.sh  # Choose option 3 for multi-agent"
 echo ""
 echo "3. For systemd (if multiple instances):"
-echo "   sudo systemctl start crawler-agent-v2@1"
-echo "   sudo systemctl enable crawler-agent-v2@1"
+echo "   sudo systemctl start crawler-agent@1"
+echo "   sudo systemctl enable crawler-agent@1"
 echo ""
 echo "4. View logs:"
 echo "   tail -f logs/agent_1.log"
 echo ""
-print_msg $GREEN "Installation directory: $INSTALL_DIR/agent-v2"
+print_msg $GREEN "Installation directory: $INSTALL_DIR/agent"
